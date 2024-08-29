@@ -18,10 +18,17 @@
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.victorlbernardes.contadorisocil"
     },
     "web": {
       "favicon": "./src/assets/icon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8cda1bbd-9ed7-424b-bdc5-f2a55fb80a35"
+      }
+    },
+    "owner": "victorlbernardes"
   }
 }

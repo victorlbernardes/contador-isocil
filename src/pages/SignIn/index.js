@@ -1,29 +1,101 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native'
-
-import * as Animatable from 'react-native-animatable'
-import { useNavigation } from '@react-navigation/native'
 import { SelectList } from 'react-native-dropdown-select-list'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import * as Animatable from 'react-native-animatable'
+import { useNavigation } from '@react-navigation/native'
+import { Client, Databases, Query } from "react-native-appwrite";
+
 export default function SignIn() {
-    const [username, setUsername] = useState('');
+
+    const navigation = useNavigation();
+    const [userName, setUserName] = useState('');
     const [machine, setMachine] = useState('');
     const [disabledButton, setDisableButton] = useState(true);
-    const navigation = useNavigation();
+    const [usuario, setUsuario] = useState([]);
+    const [maquina, setMaquina] = useState([]);
 
-    const usuario = ['User 1', 'User 2']
-    const maquina = ['Maquina 1', 'Maquina 2']
+    const appWriteURL = process.env.EXPO_PUBLIC_APPWRITE_URL;
+    const appWriteProjectID = process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID;
+    const appWriteDatabaseID = process.env.EXPO_PUBLIC_DATABASE_ID;
+    const appWriteCollectionUsuarioID = process.env.EXPO_PUBLIC_COLLECTION_USUARIO_ID;
+    const appWriteCollectionMaquinaID = process.env.EXPO_PUBLIC_COLLECTION_MAQUINA_ID;
+
+    const client = new Client()
+        .setEndpoint(appWriteURL) 
+        .setProject(appWriteProjectID);
+    const databases = new Databases(client);
+    const fetchData = async () => {
+
+        try {
+            fetchUsuario();
+            fetchMaquina()
+            if (userName !== null && machine !== null) {
+                setUserName(userName)
+                setMachine(machine)
+            }
+        } catch (e) {
+            console.error('Erro ao buscar Informacoes]');
+            throw new Error('Falha ao buscar Informacoes.');
+        }
+
+    }
+
+    async function fetchUsuario() {
+        try {
+            const response = await databases.listDocuments(
+                appWriteDatabaseID,
+                appWriteCollectionUsuarioID,
+                [Query.select(["Nome", "$id"])]
+            );
+            const listaUsuarios = response.documents.map(function (resp) {
+                return {
+                    value: resp.Nome,
+                    id: resp.$id
+                };
+            });
+            setUsuario(listaUsuarios);
+        } catch (error) {
+            console.error('Erro ao buscar usuario: ' + error);
+            throw new Error('Falha ao buscar usuario.');
+        }
+    }
+
+    async function fetchMaquina() {
+        try {
+            const response = await databases.listDocuments(
+                appWriteDatabaseID,
+                appWriteCollectionMaquinaID,
+                [Query.select(["Nome", "$id"])]
+            );
+            const listaMaquina = response.documents.map(function (resp) {
+                return {
+                    value: resp.Nome,
+                    id: resp.$id
+                };
+            });
+            setMaquina(listaMaquina);
+        } catch (error) {
+            console.error('Erro ao buscar maquinas: ' + error);
+            throw new Error('Falha ao buscar maquina.');
+        }
+    }
+
+
+    React.useEffect(() => {
+        fetchData();
+    }, [userName, machine]);
+
     const handleSelect = () => {
         setDisableButton(false);
     };
 
-
     const onPress = async () => {
-        if (username == '' || machine == '') {
+        if (userName == '' || machine == '') {
             alert("Por favor, insira os dados")
         } else {
-            await AsyncStorage.setItem('username', username);
+            await AsyncStorage.setItem('userName', userName);
             await AsyncStorage.setItem('maquina', machine);
             navigation.navigate('Home');
 
@@ -45,7 +117,7 @@ export default function SignIn() {
             >
                 <Text style={styles.tilte}>Usuário</Text>
                 <SelectList
-                    setSelected={(username) => setUsername(username)}
+                    setSelected={(userName: React.SetStateAction<string>) => setUserName(userName)}
                     data={usuario}
                     save="value"
                     placeholder="Selecione o Usuário"
@@ -63,18 +135,12 @@ export default function SignIn() {
 
                 <TouchableOpacity
                     style={styles.button}
-                    onPress={() => onPress()}
                     disabled={disabledButton}
+                    onPress={() => onPress()}
                 >
                     <Text style={styles.buttonText}>Entrar</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                    style={styles.buttonRegister}
-                    onPress={() => navigation.navigate('Welcome')}
-                >
-                    <Text style={styles.registerText}>Não Possui uma conta? Cadastre-se</Text>
-                </TouchableOpacity>
             </Animatable.View>
         </View>
     );
@@ -106,6 +172,7 @@ const styles = StyleSheet.create({
     tilte: {
         fontSize: 20,
         marginTop: 28,
+        paddingBottom: 20,
     },
     input: {
         borderBottomWidth: 1,
